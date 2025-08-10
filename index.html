@@ -1,40 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Astro Dodge</title>
+  <meta charset="UTF-8">
+  <title>Astro-Dodge</title>
   <style>
     body {
       margin: 0;
       background: black;
-      overflow: hidden;
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
     }
-    canvas {
+    #gameCanvas {
+      background: black;
       display: block;
       margin: auto;
-      background: radial-gradient(circle at center, #00111a, #000000);
+    }
+    #controls {
+      margin: 10px;
+    }
+    button, select {
+      font-size: 18px;
+      padding: 8px;
+      margin: 4px;
     }
   </style>
 </head>
 <body>
+  <h1>🚀 Astro-Dodge</h1>
+  <div id="controls">
+    <button onclick="startGame()">Start</button>
+    <select id="difficulty">
+      <option value="1">Easy</option>
+      <option value="2">Medium</option>
+      <option value="3">Hard</option>
+    </select>
+  </div>
   <canvas id="gameCanvas"></canvas>
+
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    // Mobile-friendly sizing
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    let shipX, shipY, shipSize, speed, asteroids, score, gameRunning;
 
-    let ship = { x: canvas.width / 2, y: canvas.height - 60, size: 30 };
-    let asteroids = [];
-    let score = 0;
-    let gameOver = false;
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 0.8;
+      shipSize = 40;
+      shipX = canvas.width / 2 - shipSize / 2;
+      shipY = canvas.height - shipSize - 10;
+    }
 
-    function drawShip() {
-      ctx.fillStyle = "cyan";
-      ctx.beginPath();
-      ctx.moveTo(ship.x, ship.y - ship.size / 2);
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function startGame() {
+      speed = parseInt(document.getElementById("difficulty").value);
+      asteroids = [];
+      score = 0;
+      gameRunning = true;
+      gameLoop();
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+      // spawn asteroids
+      if (Math.random() < 0.05) {
+        asteroids.push({ x: Math.random() * (canvas.width - 20), y: -20, size: 20 });
+      }
+      // move asteroids
+      for (let a of asteroids) {
+        a.y += speed * 2;
+        if (a.y > canvas.height) {
+          score++;
+        }
+      }
+      // collision check
+      for (let a of asteroids) {
+        if (a.x < shipX + shipSize &&
+            a.x + a.size > shipX &&
+            a.y < shipY + shipSize &&
+            a.y + a.size > shipY) {
+          gameRunning = false;
+          alert("Game Over! Score: " + score);
+        }
+      }
+      // remove off-screen asteroids
+      asteroids = asteroids.filter(a => a.y < canvas.height);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // draw ship
+      ctx.fillStyle = "white";
+      ctx.fillRect(shipX, shipY, shipSize, shipSize);
+      // draw asteroids
+      ctx.fillStyle = "red";
+      for (let a of asteroids) {
+        ctx.fillRect(a.x, a.y, a.size, a.size);
+      }
+      // draw score
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 20);
+    }
+
+    // Touch & keyboard controls
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") shipX -= 20;
+      if (e.key === "ArrowRight") shipX += 20;
+    });
+
+    canvas.addEventListener("touchstart", e => {
+      const touchX = e.touches[0].clientX;
+      if (touchX < canvas.width / 2) {
+        shipX -= 30;
+      } else {
+        shipX += 30;
+      }
+    });
+  </script>
+</body>
+</html>      ctx.moveTo(ship.x, ship.y - ship.size / 2);
       ctx.lineTo(ship.x - ship.size / 2, ship.y + ship.size / 2);
       ctx.lineTo(ship.x + ship.size / 2, ship.y + ship.size / 2);
       ctx.closePath();
