@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Astro-Dodge</title>
+  <title>Astro-Dodge with Big Joystick</title>
   <style>
     body {
       margin: 0;
@@ -25,23 +25,24 @@
       padding: 8px;
       margin: 4px;
     }
+    /* Big joystick */
     #joystick {
       position: fixed;
-      bottom: 40px;
-      left: 40px;
-      width: 100px;
-      height: 100px;
-      background: rgba(255,255,255,0.1);
+      bottom: 60px;
+      left: 60px;
+      width: 160px;
+      height: 160px;
+      background: rgba(255,255,255,0.15);
       border-radius: 50%;
       touch-action: none;
     }
     #joystick-knob {
       position: absolute;
-      top: 35px;
-      left: 35px;
-      width: 30px;
-      height: 30px;
-      background: rgba(255,255,255,0.7);
+      top: 65px;
+      left: 65px;
+      width: 40px;
+      height: 40px;
+      background: rgba(255,255,255,0.8);
       border-radius: 50%;
       pointer-events: none;
     }
@@ -59,6 +60,7 @@
   </div>
   <canvas id="gameCanvas"></canvas>
 
+  <!-- Joystick -->
   <div id="joystick">
     <div id="joystick-knob"></div>
   </div>
@@ -66,10 +68,10 @@
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const joystick = document.getElementById("joystick");
+    const knob = document.getElementById("joystick-knob");
 
     let shipX, shipY, shipSize, speed, asteroids, score, gameRunning;
-    let joystick = document.getElementById("joystick");
-    let knob = document.getElementById("joystick-knob");
     let joyActive = false, joyStartX = 0, joyCurrentX = 0;
 
     function resizeCanvas() {
@@ -102,7 +104,7 @@
       // joystick movement
       if (joyActive) {
         let dx = joyCurrentX - joyStartX;
-        shipX += dx * 0.05; // adjust sensitivity here
+        shipX += dx * 0.05;
         if (shipX < 0) shipX = 0;
         if (shipX + shipSize > canvas.width) shipX = canvas.width - shipSize;
       }
@@ -111,6 +113,7 @@
       if (Math.random() < 0.05) {
         asteroids.push({ x: Math.random() * (canvas.width - 20), y: -20, size: 20 });
       }
+
       // move asteroids
       for (let a of asteroids) {
         a.y += speed * 2;
@@ -118,6 +121,7 @@
           score++;
         }
       }
+
       // collision check
       for (let a of asteroids) {
         if (a.x < shipX + shipSize &&
@@ -128,6 +132,8 @@
           alert("Game Over! Score: " + score);
         }
       }
+
+      // remove off-screen asteroids
       asteroids = asteroids.filter(a => a.y < canvas.height);
     }
 
@@ -147,29 +153,31 @@
       ctx.fillText("Score: " + score, 10, 20);
     }
 
-    // Keyboard controls
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft") shipX -= 20;
-      if (e.key === "ArrowRight") shipX += 20;
-    });
-
-    // Joystick controls
+    // Joystick touch controls
     joystick.addEventListener("touchstart", e => {
       joyActive = true;
       joyStartX = e.touches[0].clientX;
       joyCurrentX = joyStartX;
     });
+
     joystick.addEventListener("touchmove", e => {
       joyCurrentX = e.touches[0].clientX;
       let dx = joyCurrentX - joyStartX;
-      let maxDist = 40;
+      let maxDist = 60;
       if (dx > maxDist) dx = maxDist;
       if (dx < -maxDist) dx = -maxDist;
-      knob.style.left = (35 + dx) + "px";
+      knob.style.left = (65 + dx) + "px";
     });
+
     joystick.addEventListener("touchend", () => {
       joyActive = false;
-      knob.style.left = "35px";
+      knob.style.left = "65px";
+    });
+
+    // Also allow arrow keys for desktop
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") shipX -= 20;
+      if (e.key === "ArrowRight") shipX += 20;
     });
   </script>
 </body>
