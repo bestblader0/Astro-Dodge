@@ -10,6 +10,7 @@
       color: white;
       text-align: center;
       font-family: sans-serif;
+      overflow: hidden;
     }
     #gameCanvas {
       background: black;
@@ -24,6 +25,26 @@
       padding: 8px;
       margin: 4px;
     }
+    #joystick {
+      position: fixed;
+      bottom: 40px;
+      left: 40px;
+      width: 100px;
+      height: 100px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      touch-action: none;
+    }
+    #joystick-knob {
+      position: absolute;
+      top: 35px;
+      left: 35px;
+      width: 30px;
+      height: 30px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 50%;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -35,6 +56,124 @@
       <option value="2">Medium</option>
       <option value="3">Hard</option>
     </select>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="joystick">
+    <div id="joystick-knob"></div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let shipX, shipY, shipSize, speed, asteroids, score, gameRunning;
+    let joystick = document.getElementById("joystick");
+    let knob = document.getElementById("joystick-knob");
+    let joyActive = false, joyStartX = 0, joyCurrentX = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight * 0.8;
+      shipSize = 40;
+      shipX = canvas.width / 2 - shipSize / 2;
+      shipY = canvas.height - shipSize - 10;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function startGame() {
+      speed = parseInt(document.getElementById("difficulty").value);
+      asteroids = [];
+      score = 0;
+      gameRunning = true;
+      gameLoop();
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+      // joystick movement
+      if (joyActive) {
+        let dx = joyCurrentX - joyStartX;
+        shipX += dx * 0.05; // adjust sensitivity here
+        if (shipX < 0) shipX = 0;
+        if (shipX + shipSize > canvas.width) shipX = canvas.width - shipSize;
+      }
+
+      // spawn asteroids
+      if (Math.random() < 0.05) {
+        asteroids.push({ x: Math.random() * (canvas.width - 20), y: -20, size: 20 });
+      }
+      // move asteroids
+      for (let a of asteroids) {
+        a.y += speed * 2;
+        if (a.y > canvas.height) {
+          score++;
+        }
+      }
+      // collision check
+      for (let a of asteroids) {
+        if (a.x < shipX + shipSize &&
+            a.x + a.size > shipX &&
+            a.y < shipY + shipSize &&
+            a.y + a.size > shipY) {
+          gameRunning = false;
+          alert("Game Over! Score: " + score);
+        }
+      }
+      asteroids = asteroids.filter(a => a.y < canvas.height);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // draw ship
+      ctx.fillStyle = "white";
+      ctx.fillRect(shipX, shipY, shipSize, shipSize);
+      // draw asteroids
+      ctx.fillStyle = "red";
+      for (let a of asteroids) {
+        ctx.fillRect(a.x, a.y, a.size, a.size);
+      }
+      // draw score
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 20);
+    }
+
+    // Keyboard controls
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") shipX -= 20;
+      if (e.key === "ArrowRight") shipX += 20;
+    });
+
+    // Joystick controls
+    joystick.addEventListener("touchstart", e => {
+      joyActive = true;
+      joyStartX = e.touches[0].clientX;
+      joyCurrentX = joyStartX;
+    });
+    joystick.addEventListener("touchmove", e => {
+      joyCurrentX = e.touches[0].clientX;
+      let dx = joyCurrentX - joyStartX;
+      let maxDist = 40;
+      if (dx > maxDist) dx = maxDist;
+      if (dx < -maxDist) dx = -maxDist;
+      knob.style.left = (35 + dx) + "px";
+    });
+    joystick.addEventListener("touchend", () => {
+      joyActive = false;
+      knob.style.left = "35px";
+    });
+  </script>
+</body>
+</html>    </select>
   </div>
   <canvas id="gameCanvas"></canvas>
 
