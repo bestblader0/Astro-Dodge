@@ -8,9 +8,9 @@
       margin: 0;
       background: black;
       color: white;
+      text-align: center;
       font-family: sans-serif;
       overflow: hidden;
-      text-align: center;
     }
     #gameCanvas {
       background: black;
@@ -28,18 +28,18 @@
     /* Big joystick */
     #joystick {
       position: fixed;
-      bottom: 80px;
-      left: 80px;
-      width: 250px;
-      height: 250px;
-      background: rgba(255,255,255,0.1);
+      bottom: 40px;
+      left: 40px;
+      width: 200px;
+      height: 200px;
+      background: rgba(255,255,255,0.15);
       border-radius: 50%;
       touch-action: none;
     }
     #joystick-knob {
       position: absolute;
-      top: 95px;
-      left: 95px;
+      top: 70px;
+      left: 70px;
       width: 60px;
       height: 60px;
       background: rgba(255,255,255,0.8);
@@ -81,6 +81,7 @@
       shipX = canvas.width / 2 - shipSize / 2;
       shipY = canvas.height - shipSize - 10;
     }
+
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
@@ -89,8 +90,6 @@
       asteroids = [];
       score = 0;
       gameRunning = true;
-      shipX = canvas.width / 2 - shipSize / 2;
-      shipY = canvas.height - shipSize - 10;
       gameLoop();
     }
 
@@ -102,12 +101,19 @@
     }
 
     function update() {
-      // joystick movement
+      // joystick movement (smooth)
       if (joyActive) {
         let dx = joyCurrentX - joyStartX;
         let dy = joyCurrentY - joyStartY;
-        shipX += dx * 0.05;
-        shipY += dy * 0.05;
+        let maxDist = 100;
+        dx = Math.max(Math.min(dx, maxDist), -maxDist);
+        dy = Math.max(Math.min(dy, maxDist), -maxDist);
+        let normX = dx / maxDist;
+        let normY = dy / maxDist;
+        let topSpeed = 5; // pixels/frame
+        shipX += normX * topSpeed;
+        shipY += normY * topSpeed;
+        // bounds
         if (shipX < 0) shipX = 0;
         if (shipX + shipSize > canvas.width) shipX = canvas.width - shipSize;
         if (shipY < 0) shipY = 0;
@@ -115,21 +121,16 @@
       }
 
       // spawn asteroids
-      if (Math.random() < 0.03) {
-        asteroids.push({ 
-          x: Math.random() * (canvas.width - 20), 
-          y: -20, 
-          size: 20, 
-          counted: false 
-        });
+      if (Math.random() < 0.05) {
+        asteroids.push({ x: Math.random() * (canvas.width - 20), y: -20, size: 20, passed: false });
       }
 
-      // move asteroids & score when passed
+      // move asteroids
       for (let a of asteroids) {
         a.y += speed * 2;
-        if (a.y > canvas.height && !a.counted) {
+        if (a.y > canvas.height && !a.passed) {
           score++;
-          a.counted = true;
+          a.passed = true;
         }
       }
 
@@ -140,7 +141,7 @@
             a.y < shipY + shipSize &&
             a.y + a.size > shipY) {
           gameRunning = false;
-          alert("💥 Game Over! Score: " + score);
+          alert("Game Over! Score: " + score);
         }
       }
 
@@ -179,26 +180,25 @@
       let dx = joyCurrentX - joyStartX;
       let dy = joyCurrentY - joyStartY;
       let maxDist = 100;
-      if (dx > maxDist) dx = maxDist;
-      if (dx < -maxDist) dx = -maxDist;
-      if (dy > maxDist) dy = maxDist;
-      if (dy < -maxDist) dy = -maxDist;
-      knob.style.left = (95 + dx) + "px";
-      knob.style.top = (95 + dy) + "px";
+      dx = Math.max(Math.min(dx, maxDist), -maxDist);
+      dy = Math.max(Math.min(dy, maxDist), -maxDist);
+      knob.style.left = (70 + dx * 0.6) + "px";
+      knob.style.top = (70 + dy * 0.6) + "px";
     });
 
     joystick.addEventListener("touchend", () => {
       joyActive = false;
-      knob.style.left = "95px";
-      knob.style.top = "95px";
+      knob.style.left = "70px";
+      knob.style.top = "70px";
     });
 
-    // Keyboard for desktop
+    // Arrow keys for desktop
     document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft") shipX -= 20;
-      if (e.key === "ArrowRight") shipX += 20;
-      if (e.key === "ArrowUp") shipY -= 20;
-      if (e.key === "ArrowDown") shipY += 20;
+      let step = 10;
+      if (e.key === "ArrowLeft") shipX -= step;
+      if (e.key === "ArrowRight") shipX += step;
+      if (e.key === "ArrowUp") shipY -= step;
+      if (e.key === "ArrowDown") shipY += step;
     });
   </script>
 </body>
