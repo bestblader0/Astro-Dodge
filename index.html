@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Dodge</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: radial-gradient(circle at center, #00111a, #000000);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Mobile-friendly sizing
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let ship = { x: canvas.width / 2, y: canvas.height - 60, size: 30 };
+    let asteroids = [];
+    let score = 0;
+    let gameOver = false;
+
+    function drawShip() {
+      ctx.fillStyle = "cyan";
+      ctx.beginPath();
+      ctx.moveTo(ship.x, ship.y - ship.size / 2);
+      ctx.lineTo(ship.x - ship.size / 2, ship.y + ship.size / 2);
+      ctx.lineTo(ship.x + ship.size / 2, ship.y + ship.size / 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawAsteroids() {
+      ctx.fillStyle = "red";
+      for (let a of asteroids) {
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function updateAsteroids() {
+      for (let a of asteroids) {
+        a.y += a.speed;
+        if (a.y > canvas.height + a.size) {
+          asteroids.splice(asteroids.indexOf(a), 1);
+          score++;
+        }
+        // Collision detection
+        if (
+          a.x > ship.x - ship.size / 2 &&
+          a.x < ship.x + ship.size / 2 &&
+          a.y + a.size > ship.y - ship.size / 2 &&
+          a.y - a.size < ship.y + ship.size / 2
+        ) {
+          gameOver = true;
+        }
+      }
+    }
+
+    function spawnAsteroid() {
+      let size = Math.random() * 20 + 10;
+      let x = Math.random() * (canvas.width - size * 2) + size;
+      let y = -size;
+      let speed = Math.random() * 3 + 2;
+      asteroids.push({ x, y, size, speed });
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Score: " + score, 10, 30);
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!gameOver) {
+        drawShip();
+        drawAsteroids();
+        updateAsteroids();
+        drawScore();
+        requestAnimationFrame(gameLoop);
+      } else {
+        ctx.fillStyle = "white";
+        ctx.font = "40px Arial";
+        ctx.fillText("Game Over!", canvas.width / 2 - 100, canvas.height / 2);
+        ctx.font = "20px Arial";
+        ctx.fillText("Final Score: " + score, canvas.width / 2 - 60, canvas.height / 2 + 30);
+      }
+    }
+
+    // Touch controls
+    document.addEventListener("touchmove", (e) => {
+      let touch = e.touches[0];
+      ship.x = touch.clientX;
+    });
+
+    // Spawn asteroids periodically
+    setInterval(spawnAsteroid, 700);
+
+    gameLoop();
+  </script>
+</body>
+</html>
