@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Astro-Dodge with Shield Visual</title>
+  <title>Astro-Dodge with Power-Up</title>
   <style>
     body {
       margin: 0;
@@ -21,16 +21,16 @@
       position: fixed;
       bottom: 40px;
       left: 40px;
-      width: 200px;
-      height: 200px;
+      width: 240px; /* bigger */
+      height: 240px;
       background: rgba(255,255,255,0.15);
       border-radius: 50%;
       touch-action: none;
     }
     #joystick-knob {
       position: absolute;
-      top: 70px;
-      left: 70px;
+      top: 90px;
+      left: 90px;
       width: 60px;
       height: 60px;
       background: rgba(255,255,255,0.8);
@@ -51,24 +51,33 @@
       transform: translateX(-50%);
       font-size: 18px;
     }
-    #gameOverScreen {
+    .screen {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.9);
       display: none;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       color: white;
-      font-size: 32px;
     }
-    #gameOverScreen button {
+    .screen button {
       font-size: 20px;
       padding: 10px 20px;
-      margin-top: 20px;
+      margin: 10px;
+    }
+    .title {
+      font-size: 40px;
+      margin-bottom: 20px;
+    }
+    .instructions {
+      font-size: 18px;
+      max-width: 80%;
+      margin-bottom: 20px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -82,10 +91,24 @@
     <div id="joystick-knob"></div>
   </div>
 
+  <!-- Start Screen -->
+  <div id="startScreen" class="screen" style="display: flex;">
+    <div class="title">🚀 Astro-Dodge</div>
+    <div class="instructions">
+      Move your ship to dodge the red asteroids.<br>
+      Collect blue squares for a shield that lets you survive one hit.<br>
+      Use the joystick or arrow keys to move.
+    </div>
+    <div>Choose Difficulty:</div>
+    <button onclick="startGame('easy')">Easy</button>
+    <button onclick="startGame('medium')">Medium</button>
+    <button onclick="startGame('hard')">Hard</button>
+  </div>
+
   <!-- Game Over Screen -->
-  <div id="gameOverScreen">
+  <div id="gameOverScreen" class="screen">
     <div id="gameOverText">Game Over</div>
-    <button onclick="startGame()">Restart</button>
+    <button onclick="showStartScreen()">Main Menu</button>
   </div>
 
   <script>
@@ -95,11 +118,12 @@
     const knob = document.getElementById("joystick-knob");
     const scoreboard = document.getElementById("scoreboard");
     const shieldStatus = document.getElementById("shieldStatus");
+    const startScreen = document.getElementById("startScreen");
     const gameOverScreen = document.getElementById("gameOverScreen");
     const gameOverText = document.getElementById("gameOverText");
 
     let shipX, shipY, shipSize;
-    let speed = 2, asteroids, powerUps, score, gameRunning, hasShield;
+    let asteroidSpeed, asteroids, powerUps, score, gameRunning, hasShield;
     let joyActive = false, joyStartX = 0, joyStartY = 0, joyCurrentX = 0, joyCurrentY = 0;
 
     function resizeCanvas() {
@@ -113,12 +137,17 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    function startGame() {
+    function startGame(difficulty) {
+      if (difficulty === 'easy') asteroidSpeed = 2;
+      if (difficulty === 'medium') asteroidSpeed = 3;
+      if (difficulty === 'hard') asteroidSpeed = 4;
+
       asteroids = [];
       powerUps = [];
       score = 0;
       hasShield = false;
       gameRunning = true;
+      startScreen.style.display = "none";
       gameOverScreen.style.display = "none";
       resizeCanvas();
       gameLoop();
@@ -136,7 +165,7 @@
       if (joyActive) {
         let dx = joyCurrentX - joyStartX;
         let dy = joyCurrentY - joyStartY;
-        let maxDist = 100;
+        let maxDist = 120;
         dx = Math.max(Math.min(dx, maxDist), -maxDist);
         dy = Math.max(Math.min(dy, maxDist), -maxDist);
         let normX = dx / maxDist;
@@ -162,7 +191,7 @@
 
       // move asteroids
       for (let a of asteroids) {
-        a.y += speed * 2;
+        a.y += asteroidSpeed * 2;
         if (a.y > canvas.height && !a.passed) {
           score++;
           a.passed = true;
@@ -171,7 +200,7 @@
 
       // move power-ups
       for (let p of powerUps) {
-        p.y += speed * 1.5;
+        p.y += asteroidSpeed * 1.5;
       }
 
       // collision check with asteroids
@@ -183,7 +212,7 @@
           if (hasShield) {
             hasShield = false;
             shieldStatus.textContent = "Shield: ❌";
-            a.y = canvas.height + 100; // remove asteroid
+            a.y = canvas.height + 100;
           } else {
             endGame();
           }
@@ -211,19 +240,17 @@
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // ship with optional shield glow
-      if (hasShield) {
-        ctx.beginPath();
-        ctx.arc(shipX + shipSize / 2, shipY + shipSize / 2, shipSize, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(0, 150, 255, 0.7)";
-        ctx.lineWidth = 4;
-        ctx.shadowColor = "rgba(0, 150, 255, 0.7)";
-        ctx.shadowBlur = 15;
-        ctx.stroke();
-        ctx.shadowBlur = 0; // reset shadow
-      }
+      // ship
       ctx.fillStyle = "white";
       ctx.fillRect(shipX, shipY, shipSize, shipSize);
+      // shield visual
+      if (hasShield) {
+        ctx.strokeStyle = "cyan";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(shipX + shipSize / 2, shipY + shipSize / 2, shipSize, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       // asteroids
       ctx.fillStyle = "red";
       for (let a of asteroids) {
@@ -242,6 +269,11 @@
       gameOverScreen.style.display = "flex";
     }
 
+    function showStartScreen() {
+      gameOverScreen.style.display = "none";
+      startScreen.style.display = "flex";
+    }
+
     // Joystick touch controls
     joystick.addEventListener("touchstart", e => {
       joyActive = true;
@@ -256,17 +288,17 @@
       joyCurrentY = e.touches[0].clientY;
       let dx = joyCurrentX - joyStartX;
       let dy = joyCurrentY - joyStartY;
-      let maxDist = 100;
+      let maxDist = 120;
       dx = Math.max(Math.min(dx, maxDist), -maxDist);
       dy = Math.max(Math.min(dy, maxDist), -maxDist);
-      knob.style.left = (70 + dx * 0.6) + "px";
-      knob.style.top = (70 + dy * 0.6) + "px";
+      knob.style.left = (90 + dx * 0.5) + "px";
+      knob.style.top = (90 + dy * 0.5) + "px";
     });
 
     joystick.addEventListener("touchend", () => {
       joyActive = false;
-      knob.style.left = "70px";
-      knob.style.top = "70px";
+      knob.style.left = "90px";
+      knob.style.top = "90px";
     });
 
     // desktop keys
