@@ -1,314 +1,272 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Astro-Dodge with Power-Up</title>
-  <style>
-    body {
-      margin: 0;
-      background: black;
-      color: white;
-      font-family: sans-serif;
-      overflow: hidden;
-      text-align: center;
-    }
-    #gameCanvas {
-      background: black;
-      display: block;
-      margin: auto;
-    }
-    #joystick {
-      position: fixed;
-      bottom: 40px;
-      left: 40px;
-      width: 240px; /* bigger */
-      height: 240px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 50%;
-      touch-action: none;
-    }
-    #joystick-knob {
-      position: absolute;
-      top: 90px;
-      left: 90px;
-      width: 60px;
-      height: 60px;
-      background: rgba(255,255,255,0.8);
-      border-radius: 50%;
-      pointer-events: none;
-    }
-    #scoreboard {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 24px;
-    }
-    #shieldStatus {
-      position: fixed;
-      top: 50px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 18px;
-    }
-    .screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.9);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-    }
-    .screen button {
-      font-size: 20px;
-      padding: 10px 20px;
-      margin: 10px;
-    }
-    .title {
-      font-size: 40px;
-      margin-bottom: 20px;
-    }
-    .instructions {
-      font-size: 18px;
-      max-width: 80%;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astro Dodge</title>
+<style>
+  body {
+    margin: 0;
+    background: black;
+    color: white;
+    font-family: sans-serif;
+    overflow: hidden;
+  }
+  #gameCanvas {
+    display: block;
+    background: black;
+  }
+  #startScreen, #gameOverScreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+  }
+  button {
+    padding: 12px 20px;
+    margin: 10px;
+    font-size: 18px;
+  }
+  #joystick {
+    position: fixed;
+    bottom: 60px;
+    left: 60px;
+    width: 180px;
+    height: 180px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    touch-action: none;
+  }
+  #joystick-knob {
+    position: absolute;
+    top: 70px;
+    left: 70px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  #score {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+    z-index: 5;
+  }
+  #shieldIcon {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    color: cyan;
+    z-index: 5;
+  }
+</style>
 </head>
 <body>
-  <div id="scoreboard">Score: 0</div>
-  <div id="shieldStatus">Shield: ❌</div>
-  <canvas id="gameCanvas"></canvas>
 
-  <!-- Joystick -->
-  <div id="joystick">
-    <div id="joystick-knob"></div>
+<canvas id="gameCanvas"></canvas>
+<div id="score">Score: 0</div>
+<div id="shieldIcon"></div>
+
+<div id="startScreen">
+  <h1>Astro Dodge</h1>
+  <p>Move to avoid red asteroids.</p>
+  <p>Collect blue squares for a shield.</p>
+  <p>Use joystick or arrow/WASD keys.</p>
+  <div>
+    <button onclick="startGame(2)">Easy</button>
+    <button onclick="startGame(4)">Medium</button>
+    <button onclick="startGame(6)">Hard</button>
   </div>
+</div>
 
-  <!-- Start Screen -->
-  <div id="startScreen" class="screen" style="display: flex;">
-    <div class="title">🚀 Astro-Dodge</div>
-    <div class="instructions">
-      Move your ship to dodge the red asteroids.<br>
-      Collect blue squares for a shield that lets you survive one hit.<br>
-      Use the joystick or arrow keys to move.
-    </div>
-    <div>Choose Difficulty:</div>
-    <button onclick="startGame('easy')">Easy</button>
-    <button onclick="startGame('medium')">Medium</button>
-    <button onclick="startGame('hard')">Hard</button>
-  </div>
+<div id="gameOverScreen" style="display:none;">
+  <h1>Game Over</h1>
+  <p id="finalScore"></p>
+  <button onclick="showStart()">Restart</button>
+</div>
 
-  <!-- Game Over Screen -->
-  <div id="gameOverScreen" class="screen">
-    <div id="gameOverText">Game Over</div>
-    <button onclick="showStartScreen()">Main Menu</button>
-  </div>
+<div id="joystick">
+  <div id="joystick-knob"></div>
+</div>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const joystick = document.getElementById("joystick");
-    const knob = document.getElementById("joystick-knob");
-    const scoreboard = document.getElementById("scoreboard");
-    const shieldStatus = document.getElementById("shieldStatus");
-    const startScreen = document.getElementById("startScreen");
-    const gameOverScreen = document.getElementById("gameOverScreen");
-    const gameOverText = document.getElementById("gameOverText");
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-    let shipX, shipY, shipSize;
-    let asteroidSpeed, asteroids, powerUps, score, gameRunning, hasShield;
-    let joyActive = false, joyStartX = 0, joyStartY = 0, joyCurrentX = 0, joyCurrentY = 0;
+let shipX, shipY, shipSize = 30;
+let asteroids = [];
+let powerups = [];
+let score = 0;
+let shield = false;
+let asteroidSpeed = 2;
+let gameRunning = false;
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight * 0.8;
-      shipSize = 40;
-      shipX = canvas.width / 2 - shipSize / 2;
-      shipY = canvas.height - shipSize - 10;
-    }
+let joyActive = false, joyStartX = 0, joyStartY = 0, joyCurrentX = 0, joyCurrentY = 0;
+const joystick = document.getElementById("joystick");
+const knob = document.getElementById("joystick-knob");
 
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
+joystick.addEventListener("touchstart", e => {
+  joyActive = true;
+  joyStartX = e.touches[0].clientX;
+  joyStartY = e.touches[0].clientY;
+  joyCurrentX = joyStartX;
+  joyCurrentY = joyStartY;
+});
+joystick.addEventListener("touchmove", e => {
+  joyCurrentX = e.touches[0].clientX;
+  joyCurrentY = e.touches[0].clientY;
+  let dx = joyCurrentX - joyStartX;
+  let dy = joyCurrentY - joyStartY;
+  let maxDist = 70;
+  if (dx > maxDist) dx = maxDist;
+  if (dx < -maxDist) dx = -maxDist;
+  if (dy > maxDist) dy = maxDist;
+  if (dy < -maxDist) dy = -maxDist;
+  knob.style.left = (70 + dx) + "px";
+  knob.style.top = (70 + dy) + "px";
+});
+joystick.addEventListener("touchend", () => {
+  joyActive = false;
+  knob.style.left = "70px";
+  knob.style.top = "70px";
+});
 
-    function startGame(difficulty) {
-      if (difficulty === 'easy') asteroidSpeed = 2;
-      if (difficulty === 'medium') asteroidSpeed = 3;
-      if (difficulty === 'hard') asteroidSpeed = 4;
+let keysPressed = {};
+document.addEventListener("keydown", e => keysPressed[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keysPressed[e.key.toLowerCase()] = false);
 
-      asteroids = [];
-      powerUps = [];
-      score = 0;
-      hasShield = false;
-      gameRunning = true;
-      startScreen.style.display = "none";
-      gameOverScreen.style.display = "none";
-      resizeCanvas();
-      gameLoop();
-    }
+function updateKeyboardMovement() {
+  let step = 5;
+  if (keysPressed["arrowleft"] || keysPressed["a"]) shipX -= step;
+  if (keysPressed["arrowright"] || keysPressed["d"]) shipX += step;
+  if (keysPressed["arrowup"] || keysPressed["w"]) shipY -= step;
+  if (keysPressed["arrowdown"] || keysPressed["s"]) shipY += step;
+  if (shipX < 0) shipX = 0;
+  if (shipX + shipSize > canvas.width) shipX = canvas.width - shipSize;
+  if (shipY < 0) shipY = 0;
+  if (shipY + shipSize > canvas.height) shipY = canvas.height - shipSize;
+}
 
-    function gameLoop() {
-      if (!gameRunning) return;
-      update();
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
+function startGame(speed) {
+  asteroidSpeed = speed;
+  score = 0;
+  shield = false;
+  shipX = canvas.width / 2 - shipSize / 2;
+  shipY = canvas.height - shipSize - 20;
+  asteroids = [];
+  powerups = [];
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("gameOverScreen").style.display = "none";
+  gameRunning = true;
+  loop();
+}
 
-    function update() {
-      // joystick movement
-      if (joyActive) {
-        let dx = joyCurrentX - joyStartX;
-        let dy = joyCurrentY - joyStartY;
-        let maxDist = 120;
-        dx = Math.max(Math.min(dx, maxDist), -maxDist);
-        dy = Math.max(Math.min(dy, maxDist), -maxDist);
-        let normX = dx / maxDist;
-        let normY = dy / maxDist;
-        let topSpeed = 5;
-        shipX += normX * topSpeed;
-        shipY += normY * topSpeed;
-        if (shipX < 0) shipX = 0;
-        if (shipX + shipSize > canvas.width) shipX = canvas.width - shipSize;
-        if (shipY < 0) shipY = 0;
-        if (shipY + shipSize > canvas.height) shipY = canvas.height - shipSize;
-      }
+function showStart() {
+  document.getElementById("startScreen").style.display = "flex";
+  document.getElementById("gameOverScreen").style.display = "none";
+}
 
-      // spawn asteroids
-      if (Math.random() < 0.05) {
-        asteroids.push({ x: Math.random() * (canvas.width - 20), y: -20, size: 20, passed: false });
-      }
+function spawnAsteroid() {
+  let size = 20 + Math.random() * 20;
+  asteroids.push({x: Math.random() * (canvas.width - size), y: -size, size});
+}
+function spawnPowerup() {
+  let size = 20;
+  powerups.push({x: Math.random() * (canvas.width - size), y: -size, size});
+}
 
-      // spawn power-ups
-      if (Math.random() < 0.005) {
-        powerUps.push({ x: Math.random() * (canvas.width - 20), y: -20, size: 20 });
-      }
+function update() {
+  updateKeyboardMovement();
 
-      // move asteroids
-      for (let a of asteroids) {
-        a.y += asteroidSpeed * 2;
-        if (a.y > canvas.height && !a.passed) {
-          score++;
-          a.passed = true;
-        }
-      }
+  if (joyActive) {
+    let dx = joyCurrentX - joyStartX;
+    let dy = joyCurrentY - joyStartY;
+    let maxDist = 70;
+    if (dx > maxDist) dx = maxDist;
+    if (dx < -maxDist) dx = -maxDist;
+    if (dy > maxDist) dy = maxDist;
+    if (dy < -maxDist) dy = -maxDist;
+    let normX = dx / maxDist;
+    let normY = dy / maxDist;
+    let topSpeed = 5;
+    shipX += normX * topSpeed;
+    shipY += normY * topSpeed;
+    if (shipX < 0) shipX = 0;
+    if (shipX + shipSize > canvas.width) shipX = canvas.width - shipSize;
+    if (shipY < 0) shipY = 0;
+    if (shipY + shipSize > canvas.height) shipY = canvas.height - shipSize;
+  }
 
-      // move power-ups
-      for (let p of powerUps) {
-        p.y += asteroidSpeed * 1.5;
-      }
+  if (Math.random() < 0.03) spawnAsteroid();
+  if (Math.random() < 0.005) spawnPowerup();
 
-      // collision check with asteroids
-      for (let a of asteroids) {
-        if (a.x < shipX + shipSize &&
-            a.x + a.size > shipX &&
-            a.y < shipY + shipSize &&
-            a.y + a.size > shipY) {
-          if (hasShield) {
-            hasShield = false;
-            shieldStatus.textContent = "Shield: ❌";
-            a.y = canvas.height + 100;
-          } else {
-            endGame();
-          }
-        }
-      }
+  asteroids.forEach(a => a.y += asteroidSpeed);
+  powerups.forEach(p => p.y += asteroidSpeed * 0.8);
 
-      // collision check with power-ups
-      for (let p of powerUps) {
-        if (p.x < shipX + shipSize &&
-            p.x + p.size > shipX &&
-            p.y < shipY + shipSize &&
-            p.y + p.size > shipY) {
-          hasShield = true;
-          shieldStatus.textContent = "Shield: ✅";
-          p.y = canvas.height + 100;
-        }
-      }
-
-      // remove off-screen
-      asteroids = asteroids.filter(a => a.y < canvas.height + 50);
-      powerUps = powerUps.filter(p => p.y < canvas.height + 50);
-
-      scoreboard.textContent = "Score: " + score;
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // ship
-      ctx.fillStyle = "white";
-      ctx.fillRect(shipX, shipY, shipSize, shipSize);
-      // shield visual
-      if (hasShield) {
-        ctx.strokeStyle = "cyan";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(shipX + shipSize / 2, shipY + shipSize / 2, shipSize, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      // asteroids
-      ctx.fillStyle = "red";
-      for (let a of asteroids) {
-        ctx.fillRect(a.x, a.y, a.size, a.size);
-      }
-      // power-ups
-      ctx.fillStyle = "blue";
-      for (let p of powerUps) {
-        ctx.fillRect(p.x, p.y, p.size, p.size);
+  asteroids = asteroids.filter(a => {
+    if (a.y > canvas.height) return false;
+    if (a.x < shipX + shipSize && a.x + a.size > shipX &&
+        a.y < shipY + shipSize && a.y + a.size > shipY) {
+      if (shield) {
+        shield = false;
+        return false;
+      } else {
+        gameOver();
+        return false;
       }
     }
+    return true;
+  });
 
-    function endGame() {
-      gameRunning = false;
-      gameOverText.textContent = "Game Over! Score: " + score;
-      gameOverScreen.style.display = "flex";
+  powerups = powerups.filter(p => {
+    if (p.y > canvas.height) return false;
+    if (p.x < shipX + shipSize && p.x + p.size > shipX &&
+        p.y < shipY + shipSize && p.y + p.size > shipY) {
+      shield = true;
+      return false;
     }
+    return true;
+  });
 
-    function showStartScreen() {
-      gameOverScreen.style.display = "none";
-      startScreen.style.display = "flex";
-    }
+  score++;
+}
 
-    // Joystick touch controls
-    joystick.addEventListener("touchstart", e => {
-      joyActive = true;
-      joyStartX = e.touches[0].clientX;
-      joyStartY = e.touches[0].clientY;
-      joyCurrentX = joyStartX;
-      joyCurrentY = joyStartY;
-    });
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.fillRect(shipX, shipY, shipSize, shipSize);
 
-    joystick.addEventListener("touchmove", e => {
-      joyCurrentX = e.touches[0].clientX;
-      joyCurrentY = e.touches[0].clientY;
-      let dx = joyCurrentX - joyStartX;
-      let dy = joyCurrentY - joyStartY;
-      let maxDist = 120;
-      dx = Math.max(Math.min(dx, maxDist), -maxDist);
-      dy = Math.max(Math.min(dy, maxDist), -maxDist);
-      knob.style.left = (90 + dx * 0.5) + "px";
-      knob.style.top = (90 + dy * 0.5) + "px";
-    });
+  ctx.fillStyle = "red";
+  asteroids.forEach(a => ctx.fillRect(a.x, a.y, a.size, a.size));
 
-    joystick.addEventListener("touchend", () => {
-      joyActive = false;
-      knob.style.left = "90px";
-      knob.style.top = "90px";
-    });
+  ctx.fillStyle = "cyan";
+  powerups.forEach(p => ctx.fillRect(p.x, p.y, p.size, p.size));
+}
 
-    // desktop keys
-    document.addEventListener("keydown", e => {
-      let step = 10;
-      if (e.key === "ArrowLeft") shipX -= step;
-      if (e.key === "ArrowRight") shipX += step;
-      if (e.key === "ArrowUp") shipY -= step;
-      if (e.key === "ArrowDown") shipY += step;
-    });
-  </script>
+function loop() {
+  if (!gameRunning) return;
+  update();
+  draw();
+  document.getElementById("score").innerText = "Score: " + score;
+  document.getElementById("shieldIcon").innerText = shield ? "🛡️" : "";
+  requestAnimationFrame(loop);
+}
+
+function gameOver() {
+  gameRunning = false;
+  document.getElementById("finalScore").innerText = "Final Score: " + score;
+  document.getElementById("gameOverScreen").style.display = "flex";
+}
+</script>
 </body>
 </html>
