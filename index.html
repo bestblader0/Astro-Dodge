@@ -177,7 +177,7 @@
   let elapsed = 0;
 
   // Difficulty ramps
-  let baseAsteroidSpeed = 60; // px/s, scales up with time
+  let baseAsteroidSpeed = 40; // px/s, scales up with time
   let asteroidSpawnEvery = 900; // ms, scales down
   let powerupSpawnEvery = 6000; // ms, scales down a little
   let asteroidTimer = 0, powerupTimer = 0;
@@ -472,18 +472,18 @@
     lastChosenDiff = name;
     if (name==="Easy"){
       ship.maxSpeed = 6;
-      baseAsteroidSpeed = 60;
-      asteroidSpawnEvery = 950;
+      baseAsteroidSpeed = 40;
+      asteroidSpawnEvery = 2000;
       powerupSpawnEvery = 6000;
     } else if (name==="Medium"){
       ship.maxSpeed = 6.8;
-      baseAsteroidSpeed = 80;
-      asteroidSpawnEvery = 780;
+      baseAsteroidSpeed = 55;
+      asteroidSpawnEvery = 1800;
       powerupSpawnEvery = 5400;
     } else {
       ship.maxSpeed = 7.5;
-      baseAsteroidSpeed = 100;
-      asteroidSpawnEvery = 650;
+      baseAsteroidSpeed = 70;
+      asteroidSpawnEvery = 1600;
       powerupSpawnEvery = 5000;
     }
   }
@@ -557,7 +557,7 @@
 
     // Gradually increase asteroid speed & spawn rate
     baseAsteroidSpeed += 1.8*dt; // small ramp
-    asteroidSpawnEvery = Math.max(360, asteroidSpawnEvery - 18*dt*1000); // down to 0.36s
+    asteroidSpawnEvery = Math.max(800, asteroidSpawnEvery - 5*dt*1000); // down to 0.36s
     powerupSpawnEvery  = Math.max(3200, powerupSpawnEvery - 3*dt*1000);
 
     asteroidTimer += dt*1000; powerupTimer += dt*1000;
